@@ -8,9 +8,11 @@
 
 ### Command line flags
 
-| Flag | Environment Variable | Description         | Default Value |
-| ---- | -------------------- | ------------------- | ------------- |
-| `-h` |                      | Print help and exit |               |
+| Flag | Environment Variable | Description                      | Default Value |
+| ---- | -------------------- | -------------------------------- | ------------- |
+| `-v` |                      | Print version and exit           |               |
+| `-V` |                      | Print build information and exit |               |
+| `-h` |                      | Print help and exit              |               |
 
 ## Development
 
