@@ -17,29 +17,31 @@ var (
 
 // flags
 var (
-	showVersion   *bool
-	showBuildInfo *bool
+	fs *flag.FlagSet
+
+	showVersion   bool
+	showBuildInfo bool
 )
 
+func init() {
+	fs = flag.NewFlagSet(AppName, flag.ExitOnError)
+
+	fs.BoolVar(&showVersion, "v", false, "Print version and exit")
+	fs.BoolVar(&showBuildInfo, "V", false, "Print build information and exit")
+}
+
 func main() {
-	fs := flag.NewFlagSet(AppName, flag.ExitOnError)
-	initFlags(fs)
 	fs.Parse(os.Args[1:])
 
-	if *showVersion {
+	if showVersion {
 		fmt.Println(version)
 		os.Exit(0)
 	}
 
-	if *showBuildInfo {
+	if showBuildInfo {
 		fmt.Printf("Version:%s, GitCommit:%s, BuildDate:%s\n", version, commit, date)
 		os.Exit(0)
 	}
 	fmt.Println("Hello")
 	defer fmt.Println("Bye")
-}
-
-func initFlags(fs *flag.FlagSet) {
-	showVersion = fs.Bool("v", false, "Print version and exit")
-	showBuildInfo = fs.Bool("V", false, "Print build information and exit")
 }
