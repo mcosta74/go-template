@@ -86,9 +86,11 @@ func main() {
 		if err != nil {
 			logger.Error("fail to listen", "addr", debugAddr, "err", err)
 		}
-		logger.Info("debug server running",
-			"metrics", fmt.Sprintf("http://%s%s", l.Addr(), metricsPath),
-			"health", fmt.Sprintf("http://%s%s", l.Addr(), healthPath),
+		logger.Info("metrics available",
+			"addr", fmt.Sprintf("http://%s%s", l.Addr(), metricsPath),
+		)
+		logger.Info("health status available",
+			"addr", fmt.Sprintf("http://%s%s", l.Addr(), healthPath),
 		)
 
 		g.Add(func() error {
