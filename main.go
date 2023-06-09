@@ -9,15 +9,18 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/go-kit/kit/metrics"
+	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/mcosta74/change-me/endpoints"
 	"github.com/mcosta74/change-me/service"
 	"github.com/mcosta74/change-me/transport"
 	"github.com/oklog/run"
+	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/exp/slog"
 )
 
-const AppName = "go-template"
+const AppName = "template"
 
 // build info
 var (
@@ -43,6 +46,11 @@ var (
 	httpAddr string
 )
 
+// metrics
+var (
+	endpointDuration metrics.Histogram
+)
+
 func init() {
 	fs = flag.NewFlagSet(AppName, flag.ExitOnError)
 
@@ -57,6 +65,14 @@ func init() {
 	fs.StringVar(&metricsPath, "metrics.path", getStringEnv("APP_METRICS_PATH", "/metrics"), "Path of the metrics endpoint")
 
 	fs.StringVar(&httpAddr, "http.listen-addr", getStringEnv("APP_HTTP_LISTEN_ADDR", ":8080"), "Address of the HTTP server")
+}
+
+func init() {
+	endpointDuration = prometheus.NewHistogramFrom(stdprometheus.HistogramOpts{
+		Subsystem: AppName,
+		Name:      "endpoint_duration_seconds",
+		Help:      "The endpoint response time in seconds",
+	}, []string{"name", "success"})
 }
 
 func main() {
@@ -81,7 +97,7 @@ func main() {
 		debugHandler = makeDebugHandler()
 
 		svc         = service.NewItemService()
-		eps         = endpoints.MakeEndpoints(svc, logger)
+		eps         = endpoints.MakeEndpoints(svc, logger, endpointDuration)
 		httpHandler = transport.MakeHTTPHandler(eps)
 	)
 

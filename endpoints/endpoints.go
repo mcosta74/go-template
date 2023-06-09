@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/go-kit/kit/endpoint"
+	"github.com/go-kit/kit/metrics"
 	"github.com/mcosta74/change-me/service"
 	"golang.org/x/exp/slog"
 )
@@ -15,28 +16,32 @@ type Endpoints struct {
 	DeleteItem endpoint.Endpoint
 }
 
-func MakeEndpoints(svc service.ItemService, logger *slog.Logger) Endpoints {
+func MakeEndpoints(svc service.ItemService, logger *slog.Logger, duration metrics.Histogram) Endpoints {
 	var createItem endpoint.Endpoint
 	{
 		createItem = makeCreateItem(svc)
+		createItem = instrumentingMdw(duration.With("name", "CreateItem"))(createItem)
 		createItem = loggingMdw(logger.With("name", "CreateItem"))(createItem)
 	}
 
 	var readItem endpoint.Endpoint
 	{
 		readItem = makeReadItem(svc)
+		readItem = instrumentingMdw(duration.With("name", "ReadItem"))(readItem)
 		readItem = loggingMdw(logger.With("name", "ReadItem"))(readItem)
 	}
 
 	var updateItem endpoint.Endpoint
 	{
 		updateItem = makeUpdateItem(svc)
+		updateItem = instrumentingMdw(duration.With("name", "UpdateItem"))(updateItem)
 		updateItem = loggingMdw(logger.With("name", "UpdateItem"))(updateItem)
 	}
 
 	var deleteItem endpoint.Endpoint
 	{
 		deleteItem = makeDeleteItem(svc)
+		deleteItem = instrumentingMdw(duration.With("name", "DeleteItem"))(deleteItem)
 		deleteItem = loggingMdw(logger.With("name", "DeleteItem"))(deleteItem)
 	}
 
