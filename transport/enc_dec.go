@@ -37,10 +37,16 @@ func decodeReadItem(ctx context.Context, r *http.Request) (any, error) {
 }
 
 func decodeUpdateItem(ctx context.Context, r *http.Request) (any, error) {
+	val, err := getIntUrlParam(r, "id")
+	if err != nil {
+		return nil, endpoints.NewDecodeError(err)
+	}
+
 	var req endpoints.UpdateItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, endpoints.NewDecodeError(err)
 	}
+	req.Item.ID = val
 	return req, nil
 }
 
@@ -59,18 +65,19 @@ func encodeError(ctx context.Context, err error, w http.ResponseWriter) {
 	if coder, ok := err.(kithttp.StatusCoder); ok {
 		code = coder.StatusCode()
 	}
-	w.WriteHeader(code)
 
 	temp := struct {
 		Detail string `json:"detail,omitempty"`
 	}{Detail: err.Error()}
 
-	w.Header().Set("Content-Type", "application/json")
+	contentType := "application/json"
 	body, err := json.Marshal(temp)
 	if err != nil {
-		w.Header().Set("Content-Type", "application/text")
 		body = []byte(err.Error())
+		contentType = "application/text"
 	}
+	w.Header().Set("Content-Type", contentType)
+	w.WriteHeader(code)
 	_, _ = w.Write(body)
 }
 

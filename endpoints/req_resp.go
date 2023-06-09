@@ -46,7 +46,7 @@ type ReadItemResponse struct {
 }
 
 type UpdateItemRequest struct {
-	Item *service.Item `json:"item,omitempty"`
+	Item *service.Item `json:"item"`
 }
 
 type UpdateItemResponse struct {

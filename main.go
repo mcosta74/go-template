@@ -12,6 +12,7 @@ import (
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/mcosta74/change-me/endpoints"
+	"github.com/mcosta74/change-me/repository"
 	"github.com/mcosta74/change-me/service"
 	"github.com/mcosta74/change-me/transport"
 	"github.com/oklog/run"
@@ -104,7 +105,8 @@ func main() {
 	var (
 		debugHandler = makeDebugHandler()
 
-		svc         = service.NewItemService()
+		repo        = repository.NewInMemRepository()
+		svc         = service.NewItemService(repo)
 		eps         = endpoints.MakeEndpoints(svc, logger, endpointDuration)
 		httpHandler = transport.MakeHTTPHandler(eps, httpRequestsCount)
 	)

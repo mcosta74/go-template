@@ -23,6 +23,7 @@ func MakeEndpoints(svc service.ItemService, logger *slog.Logger, duration metric
 		listItems = makeListItems(svc)
 		listItems = instrumentingMdw(duration.With("name", "ListItems"))(listItems)
 		listItems = loggingMdw(logger.With("name", "ListItems"))(listItems)
+		listItems = errorsMiddleware(listItems)
 	}
 
 	var createItem endpoint.Endpoint
@@ -30,6 +31,7 @@ func MakeEndpoints(svc service.ItemService, logger *slog.Logger, duration metric
 		createItem = makeCreateItem(svc)
 		createItem = instrumentingMdw(duration.With("name", "CreateItem"))(createItem)
 		createItem = loggingMdw(logger.With("name", "CreateItem"))(createItem)
+		createItem = errorsMiddleware(createItem)
 	}
 
 	var readItem endpoint.Endpoint
@@ -37,6 +39,7 @@ func MakeEndpoints(svc service.ItemService, logger *slog.Logger, duration metric
 		readItem = makeReadItem(svc)
 		readItem = instrumentingMdw(duration.With("name", "ReadItem"))(readItem)
 		readItem = loggingMdw(logger.With("name", "ReadItem"))(readItem)
+		readItem = errorsMiddleware(readItem)
 	}
 
 	var updateItem endpoint.Endpoint
@@ -44,6 +47,7 @@ func MakeEndpoints(svc service.ItemService, logger *slog.Logger, duration metric
 		updateItem = makeUpdateItem(svc)
 		updateItem = instrumentingMdw(duration.With("name", "UpdateItem"))(updateItem)
 		updateItem = loggingMdw(logger.With("name", "UpdateItem"))(updateItem)
+		updateItem = errorsMiddleware(updateItem)
 	}
 
 	var deleteItem endpoint.Endpoint
@@ -51,6 +55,7 @@ func MakeEndpoints(svc service.ItemService, logger *slog.Logger, duration metric
 		deleteItem = makeDeleteItem(svc)
 		deleteItem = instrumentingMdw(duration.With("name", "DeleteItem"))(deleteItem)
 		deleteItem = loggingMdw(logger.With("name", "DeleteItem"))(deleteItem)
+		deleteItem = errorsMiddleware(deleteItem)
 	}
 
 	return Endpoints{

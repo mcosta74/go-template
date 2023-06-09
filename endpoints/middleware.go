@@ -2,11 +2,13 @@ package endpoints
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/go-kit/kit/endpoint"
 	"github.com/go-kit/kit/metrics"
+	"github.com/mcosta74/change-me/repository"
 	"golang.org/x/exp/slog"
 )
 
@@ -30,5 +32,21 @@ func instrumentingMdw(duration metrics.Histogram) endpoint.Middleware {
 			}(time.Now())
 			return next(ctx, request)
 		}
+	}
+}
+
+func errorsMiddleware(next endpoint.Endpoint) endpoint.Endpoint {
+	return func(ctx context.Context, request any) (any, error) {
+		resp, err := next(ctx, request)
+		if err != nil {
+			switch {
+			case errors.Is(err, repository.ErrNotFound):
+				err = NewNotFoundError(err)
+
+			case errors.Is(err, repository.ErrConflict):
+				err = NewConflictError(err)
+			}
+		}
+		return resp, err
 	}
 }
