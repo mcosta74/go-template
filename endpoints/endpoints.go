@@ -10,6 +10,7 @@ import (
 )
 
 type Endpoints struct {
+	ListItems  endpoint.Endpoint
 	CreateItem endpoint.Endpoint
 	ReadItem   endpoint.Endpoint
 	UpdateItem endpoint.Endpoint
@@ -17,6 +18,13 @@ type Endpoints struct {
 }
 
 func MakeEndpoints(svc service.ItemService, logger *slog.Logger, duration metrics.Histogram) Endpoints {
+	var listItems endpoint.Endpoint
+	{
+		listItems = makeListItems(svc)
+		listItems = instrumentingMdw(duration.With("name", "ListItems"))(listItems)
+		listItems = loggingMdw(logger.With("name", "ListItems"))(listItems)
+	}
+
 	var createItem endpoint.Endpoint
 	{
 		createItem = makeCreateItem(svc)
@@ -46,10 +54,23 @@ func MakeEndpoints(svc service.ItemService, logger *slog.Logger, duration metric
 	}
 
 	return Endpoints{
+		ListItems:  listItems,
 		CreateItem: createItem,
 		ReadItem:   readItem,
 		UpdateItem: updateItem,
 		DeleteItem: deleteItem,
+	}
+}
+
+func makeListItems(svc service.ItemService) endpoint.Endpoint {
+	return func(ctx context.Context, request any) (any, error) {
+		req := request.(ListItemsRequests)
+
+		v, err := svc.ListItems(ctx, req.Filters)
+		if err != nil {
+			return nil, err
+		}
+		return ListItemsResponse{V: v}, nil
 	}
 }
 

@@ -20,6 +20,12 @@ func MakeHTTPHandler(endpoints endpoints.Endpoints, counter metrics.Counter) htt
 		kithttp.ServerErrorEncoder(encodeError),
 	}
 
+	listHandler := kithttp.NewServer(
+		endpoints.ListItems,
+		decodeListItems,
+		kithttp.EncodeJSONResponse,
+		opts...,
+	)
 	createHandler := kithttp.NewServer(
 		endpoints.CreateItem,
 		decodeCreateItem,
@@ -45,6 +51,7 @@ func MakeHTTPHandler(endpoints endpoints.Endpoints, counter metrics.Counter) htt
 		opts...,
 	)
 
+	r.Method(http.MethodGet, "/items", listHandler)
 	r.Method(http.MethodPost, "/items", createHandler)
 	r.Method(http.MethodGet, "/items/{id}", readHandler)
 	r.Method(http.MethodPut, "/items/{id}", updateHandler)

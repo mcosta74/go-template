@@ -9,6 +9,7 @@ type Item struct {
 }
 
 type ItemService interface {
+	ListItems(ctx context.Context, filters map[string][]string) ([]*Item, error)
 	CreateItem(ctx context.Context, item *Item) (*Item, error)
 	ReadItem(ctx context.Context, id int) (*Item, error)
 	UpdateItem(ctx context.Context, item *Item) (*Item, error)
@@ -20,6 +21,10 @@ func NewItemService() ItemService {
 }
 
 type itemSvc struct{}
+
+func (svc *itemSvc) ListItems(ctx context.Context, filters map[string][]string) ([]*Item, error) {
+	return []*Item{}, nil
+}
 
 func (svc *itemSvc) CreateItem(ctx context.Context, item *Item) (*Item, error) {
 	return &Item{}, nil

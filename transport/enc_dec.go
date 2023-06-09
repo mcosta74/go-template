@@ -12,6 +12,12 @@ import (
 	"github.com/mcosta74/change-me/endpoints"
 )
 
+func decodeListItems(ctx context.Context, r *http.Request) (any, error) {
+	var req endpoints.ListItemsRequests
+	req.Filters = r.URL.Query()
+	return req, nil
+}
+
 func decodeCreateItem(ctx context.Context, r *http.Request) (any, error) {
 	var req endpoints.CreateItemRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
