@@ -81,7 +81,7 @@ func main() {
 		debugHandler = makeDebugHandler()
 
 		svc         = service.NewItemService()
-		eps         = endpoints.MakeEndpoints(svc)
+		eps         = endpoints.MakeEndpoints(svc, logger)
 		httpHandler = transport.MakeHTTPHandler(eps)
 	)
 
