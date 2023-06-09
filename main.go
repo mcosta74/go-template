@@ -7,9 +7,11 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"path/filepath"
 	"syscall"
 
+	"github.com/mcosta74/change-me/endpoints"
+	"github.com/mcosta74/change-me/service"
+	"github.com/mcosta74/change-me/transport"
 	"github.com/oklog/run"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"golang.org/x/exp/slog"
@@ -37,6 +39,8 @@ var (
 	debugAddr   string
 	healthPath  string
 	metricsPath string
+
+	httpAddr string
 )
 
 func init() {
@@ -45,12 +49,14 @@ func init() {
 	fs.BoolVar(&showVersion, "v", false, "Print version and exit")
 	fs.BoolVar(&showBuildInfo, "V", false, "Print build information and exit")
 
-	fs.StringVar(&logFormat, "log.format", getEnv("APP_LOG_FORMAT", "text"), "Log format (text, json)")
-	fs.StringVar(&logLevel, "log.level", getEnv("APP_LOG_LEVEL", slog.LevelInfo.String()), "Log level (debug, info, warn, error)")
+	fs.StringVar(&logFormat, "log.format", getStringEnv("APP_LOG_FORMAT", "text"), "Log format (text, json)")
+	fs.StringVar(&logLevel, "log.level", getStringEnv("APP_LOG_LEVEL", slog.LevelInfo.String()), "Log level (debug, info, warn, error)")
 
-	fs.StringVar(&debugAddr, "debug.listen", getEnv("APP_DEBUG_LISTEN_ADDR", ":8081"), "Address of the debug HTTP server")
-	fs.StringVar(&healthPath, "health.path", getEnv("APP_HEALTH_PATH", "/health"), "Path of the health endpoint")
-	fs.StringVar(&metricsPath, "metrics.path", getEnv("APP_METRICS_PATH", "/metrics"), "Path of the metrics endpoint")
+	fs.StringVar(&debugAddr, "debug.listen-addr", getStringEnv("APP_DEBUG_LISTEN_ADDR", ":8081"), "Address of the debug HTTP server")
+	fs.StringVar(&healthPath, "health.path", getStringEnv("APP_HEALTH_PATH", "/health"), "Path of the health endpoint")
+	fs.StringVar(&metricsPath, "metrics.path", getStringEnv("APP_METRICS_PATH", "/metrics"), "Path of the metrics endpoint")
+
+	fs.StringVar(&httpAddr, "http.listen-addr", getStringEnv("APP_HTTP_LISTEN_ADDR", ":8080"), "Address of the HTTP server")
 }
 
 func main() {
@@ -66,13 +72,17 @@ func main() {
 		os.Exit(0)
 	}
 
-	logger := initLogger()
+	logger := initLogger(logLevel, logFormat)
 
 	logger.Info("started")
 	defer logger.Info("stopped")
 
 	var (
 		debugHandler = makeDebugHandler()
+
+		svc         = service.NewItemService()
+		eps         = endpoints.MakeEndpoints(svc)
+		httpHandler = transport.MakeHTTPHandler(eps)
 	)
 
 	var g run.Group
@@ -86,12 +96,8 @@ func main() {
 		if err != nil {
 			logger.Error("fail to listen", "addr", debugAddr, "err", err)
 		}
-		logger.Info("metrics available",
-			"addr", fmt.Sprintf("http://%s%s", l.Addr(), metricsPath),
-		)
-		logger.Info("health status available",
-			"addr", fmt.Sprintf("http://%s%s", l.Addr(), healthPath),
-		)
+		logger.Info("metrics available", "addr", fmt.Sprintf("http://%s%s", l.Addr(), metricsPath))
+		logger.Info("health status available", "addr", fmt.Sprintf("http://%s%s", l.Addr(), healthPath))
 
 		g.Add(func() error {
 			return http.Serve(l, debugHandler)
@@ -99,44 +105,20 @@ func main() {
 			l.Close()
 		})
 	}
+	{
+		// HTTP Handler
+		l, err := net.Listen("tcp", httpAddr)
+		if err != nil {
+			logger.Error("fail to listen", "addr", debugAddr, "err", err)
+		}
+		g.Add(func() error {
+			logger.Info("HTTP server running", "addr", fmt.Sprintf("http://%s", l.Addr()))
+			return http.Serve(l, httpHandler)
+		}, func(err error) {
+			l.Close()
+		})
+	}
 	logger.Info("shutdown", "err", g.Run())
-}
-
-func getEnv(key string, defaultValue string) string {
-	if val, ok := os.LookupEnv(key); ok {
-		return val
-	}
-	return defaultValue
-}
-
-func initLogger() *slog.Logger {
-	var lvl slog.Level
-	if err := lvl.UnmarshalText([]byte(logLevel)); err != nil {
-		lvl = slog.LevelInfo
-	}
-	opts := &slog.HandlerOptions{
-		Level:     lvl,
-		AddSource: true,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			switch a.Key {
-			case slog.TimeKey:
-				// use UTC time
-				a.Value = slog.TimeValue(a.Value.Time().UTC())
-
-			case slog.SourceKey:
-				// remove directories from File
-				source := a.Value.Any().(*slog.Source)
-				source.File = filepath.Base(source.File)
-			}
-			return a
-		},
-	}
-
-	var h slog.Handler = slog.NewTextHandler(os.Stdout, opts)
-	if logFormat == "json" {
-		h = slog.NewJSONHandler(os.Stdout, opts)
-	}
-	return slog.New(h)
 }
 
 func makeDebugHandler() http.Handler {

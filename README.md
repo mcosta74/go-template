@@ -12,7 +12,8 @@
 | --------------- | ----------------------- | -------------------------------------------------------- | ------------- |
 | `-log.level`    | `APP_LOG_LEVEL`         | Application minimum log level (DEBUG, INFO, WARN, ERROR) | "INFO"        |
 | `-log.format`   | `APP_LOG_FORMAT`        | Application log level format (text, json)                | "text"        |
-| `-debug.listen` | `APP_DEBUG_LISTEN_ADDR` | Address of the debug HTTP server                         | ":8081"       |
+| `-http.listen-addr` | `APP_HTTP_LISTEN_ADDR` | Address of the HTTP server                         | ":8080"       |
+| `-debug.listen-addr` | `APP_DEBUG_LISTEN_ADDR` | Address of the debug HTTP server                         | ":8081"       |
 | `-health.path`  | `APP_HEALTH_PATH`       | Path of the health endpoint                              | "/health"     |
 | `-metrics.path` | `APP_METRICS_PATH`      | Path of the metrics endpoint                             | "/metrics"    |
 | `-v`            |                         | Print version and exit                                   |               |
