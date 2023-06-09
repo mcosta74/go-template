@@ -5,13 +5,15 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-kit/kit/metrics"
 	kithttp "github.com/go-kit/kit/transport/http"
 	"github.com/mcosta74/change-me/endpoints"
 )
 
-func MakeHTTPHandler(endpoints endpoints.Endpoints) http.Handler {
+func MakeHTTPHandler(endpoints endpoints.Endpoints, counter metrics.Counter) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
+	r.Use(instrumentingMdw(counter))
 
 	opts := []kithttp.ServerOption{
 		kithttp.ServerBefore(kithttp.PopulateRequestContext),

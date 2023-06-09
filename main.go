@@ -49,6 +49,8 @@ var (
 // metrics
 var (
 	endpointDuration metrics.Histogram
+
+	httpRequestsCount metrics.Counter
 )
 
 func init() {
@@ -73,6 +75,12 @@ func init() {
 		Name:      "endpoint_duration_seconds",
 		Help:      "The endpoint response time in seconds",
 	}, []string{"name", "success"})
+
+	httpRequestsCount = prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+		Subsystem: AppName,
+		Name:      "http_requests_total",
+		Help:      "Total count of HTTP requests by response status_code",
+	}, []string{"status_code"})
 }
 
 func main() {
@@ -98,7 +106,7 @@ func main() {
 
 		svc         = service.NewItemService()
 		eps         = endpoints.MakeEndpoints(svc, logger, endpointDuration)
-		httpHandler = transport.MakeHTTPHandler(eps)
+		httpHandler = transport.MakeHTTPHandler(eps, httpRequestsCount)
 	)
 
 	var g run.Group
