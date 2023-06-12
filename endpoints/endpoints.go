@@ -17,7 +17,7 @@ type Endpoints struct {
 	DeleteItem endpoint.Endpoint
 }
 
-func MakeEndpoints(svc service.ItemService, logger *slog.Logger, duration metrics.Histogram) Endpoints {
+func New(svc service.Service, logger *slog.Logger, duration metrics.Histogram) Endpoints {
 	var listItems endpoint.Endpoint
 	{
 		listItems = makeListItems(svc)
@@ -67,7 +67,7 @@ func MakeEndpoints(svc service.ItemService, logger *slog.Logger, duration metric
 	}
 }
 
-func makeListItems(svc service.ItemService) endpoint.Endpoint {
+func makeListItems(svc service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request any) (any, error) {
 		req := request.(ListItemsRequests)
 
@@ -79,7 +79,7 @@ func makeListItems(svc service.ItemService) endpoint.Endpoint {
 	}
 }
 
-func makeCreateItem(svc service.ItemService) endpoint.Endpoint {
+func makeCreateItem(svc service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request any) (any, error) {
 		req := request.(CreateItemRequest)
 
@@ -91,7 +91,7 @@ func makeCreateItem(svc service.ItemService) endpoint.Endpoint {
 	}
 }
 
-func makeReadItem(svc service.ItemService) endpoint.Endpoint {
+func makeReadItem(svc service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request any) (any, error) {
 		req := request.(ReadItemRequest)
 
@@ -103,7 +103,7 @@ func makeReadItem(svc service.ItemService) endpoint.Endpoint {
 	}
 }
 
-func makeUpdateItem(svc service.ItemService) endpoint.Endpoint {
+func makeUpdateItem(svc service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request any) (any, error) {
 		req := request.(UpdateItemRequest)
 
@@ -115,7 +115,7 @@ func makeUpdateItem(svc service.ItemService) endpoint.Endpoint {
 	}
 }
 
-func makeDeleteItem(svc service.ItemService) endpoint.Endpoint {
+func makeDeleteItem(svc service.Service) endpoint.Endpoint {
 	return func(ctx context.Context, request any) (any, error) {
 		req := request.(DeleteItemRequest)
 

@@ -7,7 +7,7 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-func initLogger(logLevel, logFormat string) *slog.Logger {
+func newLogger(logLevel, logFormat string) *slog.Logger {
 	var lvl slog.Level
 	if err := lvl.UnmarshalText([]byte(logLevel)); err != nil {
 		lvl = slog.LevelInfo

@@ -10,14 +10,14 @@ import (
 	"github.com/mcosta74/change-me/endpoints"
 )
 
-func MakeHTTPHandler(endpoints endpoints.Endpoints, counter metrics.Counter) http.Handler {
+func NewHTTPHandler(endpoints endpoints.Endpoints, counter metrics.Counter) http.Handler {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
-	r.Use(instrumentingMdw(counter))
 
 	opts := []kithttp.ServerOption{
 		kithttp.ServerBefore(kithttp.PopulateRequestContext),
 		kithttp.ServerErrorEncoder(encodeError),
+		kithttp.ServerFinalizer(metricsFinalizer(counter)),
 	}
 
 	listHandler := kithttp.NewServer(

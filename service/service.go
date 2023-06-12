@@ -28,7 +28,7 @@ func itemToRepository(item *Item) *repository.Item {
 	}
 }
 
-type ItemService interface {
+type Service interface {
 	ListItems(ctx context.Context, filters map[string][]string) ([]*Item, error)
 	CreateItem(ctx context.Context, item *Item) (*Item, error)
 	ReadItem(ctx context.Context, id int) (*Item, error)
@@ -36,15 +36,15 @@ type ItemService interface {
 	DeleteItem(ctx context.Context, id int) error
 }
 
-func NewItemService(repo repository.Repository) ItemService {
-	return &itemSvc{repo: repo}
+func New(repo repository.Repository) Service {
+	return &service{repo: repo}
 }
 
-type itemSvc struct {
+type service struct {
 	repo repository.Repository
 }
 
-func (svc *itemSvc) ListItems(ctx context.Context, filters map[string][]string) ([]*Item, error) {
+func (svc *service) ListItems(ctx context.Context, filters map[string][]string) ([]*Item, error) {
 	v, err := svc.repo.List(ctx, filters)
 	if err != nil {
 		return []*Item{}, err
@@ -57,7 +57,7 @@ func (svc *itemSvc) ListItems(ctx context.Context, filters map[string][]string) 
 	return items, nil
 }
 
-func (svc *itemSvc) CreateItem(ctx context.Context, item *Item) (*Item, error) {
+func (svc *service) CreateItem(ctx context.Context, item *Item) (*Item, error) {
 	v, err := svc.repo.Insert(ctx, itemToRepository(item))
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (svc *itemSvc) CreateItem(ctx context.Context, item *Item) (*Item, error) {
 	return itemFromRepository(v), nil
 }
 
-func (svc *itemSvc) ReadItem(ctx context.Context, id int) (*Item, error) {
+func (svc *service) ReadItem(ctx context.Context, id int) (*Item, error) {
 	v, err := svc.repo.Get(ctx, id)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func (svc *itemSvc) ReadItem(ctx context.Context, id int) (*Item, error) {
 	return itemFromRepository(v), nil
 }
 
-func (svc *itemSvc) UpdateItem(ctx context.Context, item *Item) (*Item, error) {
+func (svc *service) UpdateItem(ctx context.Context, item *Item) (*Item, error) {
 	v, err := svc.repo.Update(ctx, itemToRepository(item))
 	if err != nil {
 		return nil, err
@@ -81,6 +81,6 @@ func (svc *itemSvc) UpdateItem(ctx context.Context, item *Item) (*Item, error) {
 	return itemFromRepository(v), nil
 }
 
-func (svc *itemSvc) DeleteItem(ctx context.Context, id int) error {
+func (svc *service) DeleteItem(ctx context.Context, id int) error {
 	return svc.repo.Delete(ctx, id)
 }

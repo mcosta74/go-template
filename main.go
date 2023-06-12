@@ -97,18 +97,18 @@ func main() {
 		os.Exit(0)
 	}
 
-	logger := initLogger(logLevel, logFormat)
+	logger := newLogger(logLevel, logFormat)
 
 	logger.Info("started")
 	defer logger.Info("stopped")
 
 	var (
-		debugHandler = makeDebugHandler()
+		debugHandler = newDebugHandler()
 
 		repo        = repository.NewInMemRepository()
-		svc         = service.NewItemService(repo)
-		eps         = endpoints.MakeEndpoints(svc, logger, endpointDuration)
-		httpHandler = transport.MakeHTTPHandler(eps, httpRequestsCount)
+		svc         = service.New(repo)
+		eps         = endpoints.New(svc, logger, endpointDuration)
+		httpHandler = transport.NewHTTPHandler(eps, httpRequestsCount)
 	)
 
 	var g run.Group
@@ -147,7 +147,7 @@ func main() {
 	logger.Info("shutdown", "err", g.Run())
 }
 
-func makeDebugHandler() http.Handler {
+func newDebugHandler() http.Handler {
 	h := http.NewServeMux()
 
 	h.HandleFunc(healthPath, func(w http.ResponseWriter, r *http.Request) {
