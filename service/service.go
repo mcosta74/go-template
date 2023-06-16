@@ -2,85 +2,84 @@ package service
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/mcosta74/change-me/repository"
+	"golang.org/x/exp/slog"
 )
 
-type Item struct {
-	ID          int    `json:"id,omitempty"`
-	Code        string `json:"code,omitempty"`
-	Description string `json:"description,omitempty"`
+type Order repository.Order
+type OrderStatus repository.OrderStatus
+
+var (
+	StatusPending   = OrderStatus(repository.StatusPending)
+	StatusConfirmed = OrderStatus(repository.StatusConfirmed)
+	StatusCanceled  = OrderStatus(repository.StatusCanceled)
+)
+
+type OrderSvc interface {
+	GetOrder(ctx context.Context, id int) (*Order, error)
+	PlaceOrder(ctx context.Context, o *Order) (*Order, error)
+	ConfirmOrder(ctx context.Context, id int) (*Order, error)
+	CancelOrder(ctx context.Context, id int) (*Order, error)
 }
 
-func itemFromRepository(item *repository.Item) *Item {
-	return &Item{
-		ID:          item.ID,
-		Code:        item.Code,
-		Description: item.Description,
+func New(r repository.OrderRepository, logger *slog.Logger) OrderSvc {
+	var svc OrderSvc
+	{
+		svc = &orderSvc{
+			r: r,
+		}
+		svc = newLoggingMdw(logger, svc)
 	}
+	return svc
 }
 
-func itemToRepository(item *Item) *repository.Item {
-	return &repository.Item{
-		ID:          item.ID,
-		Code:        item.Code,
-		Description: item.Description,
-	}
+type orderSvc struct {
+	r repository.OrderRepository
 }
 
-type Service interface {
-	ListItems(ctx context.Context, filters map[string][]string) ([]*Item, error)
-	CreateItem(ctx context.Context, item *Item) (*Item, error)
-	ReadItem(ctx context.Context, id int) (*Item, error)
-	UpdateItem(ctx context.Context, item *Item) (*Item, error)
-	DeleteItem(ctx context.Context, id int) error
+func (s *orderSvc) GetOrder(ctx context.Context, id int) (*Order, error) {
+	v, err := s.r.GetOrder(ctx, id)
+	return (*Order)(v), err
 }
 
-func New(repo repository.Repository) Service {
-	return &service{repo: repo}
+func (s *orderSvc) PlaceOrder(ctx context.Context, o *Order) (*Order, error) {
+	now := time.Now()
+
+	o.Created = now
+	o.LastUpdate = now
+	o.Status = repository.StatusPending
+
+	v, err := s.r.CreateOrder(ctx, (*repository.Order)(o))
+	return (*Order)(v), err
 }
 
-type service struct {
-	repo repository.Repository
-}
-
-func (svc *service) ListItems(ctx context.Context, filters map[string][]string) ([]*Item, error) {
-	v, err := svc.repo.List(ctx, filters)
+func (s *orderSvc) ConfirmOrder(ctx context.Context, id int) (*Order, error) {
+	o, err := s.updateOrderStatus(ctx, id, StatusConfirmed)
 	if err != nil {
-		return []*Item{}, err
+		return nil, fmt.Errorf("confirm order failed: %w", err)
 	}
-
-	items := make([]*Item, 0, len(v))
-	for _, item := range v {
-		items = append(items, itemFromRepository(item))
-	}
-	return items, nil
+	return o, nil
 }
 
-func (svc *service) CreateItem(ctx context.Context, item *Item) (*Item, error) {
-	v, err := svc.repo.Insert(ctx, itemToRepository(item))
+func (s *orderSvc) CancelOrder(ctx context.Context, id int) (*Order, error) {
+	o, err := s.updateOrderStatus(ctx, id, StatusCanceled)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("confirm order failed: %w", err)
 	}
-	return itemFromRepository(v), nil
+	return o, nil
 }
 
-func (svc *service) ReadItem(ctx context.Context, id int) (*Item, error) {
-	v, err := svc.repo.Get(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return itemFromRepository(v), nil
-}
-
-func (svc *service) UpdateItem(ctx context.Context, item *Item) (*Item, error) {
-	v, err := svc.repo.Update(ctx, itemToRepository(item))
+func (s *orderSvc) updateOrderStatus(ctx context.Context, id int, newStatus OrderStatus) (*Order, error) {
+	o, err := s.r.GetOrder(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return itemFromRepository(v), nil
-}
+	o.Status = repository.OrderStatus(newStatus)
+	o.LastUpdate = time.Now()
 
-func (svc *service) DeleteItem(ctx context.Context, id int) error {
-	return svc.repo.Delete(ctx, id)
+	v, err := s.r.UpdateStatus(ctx, o)
+	return (*Order)(v), err
 }

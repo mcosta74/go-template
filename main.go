@@ -85,7 +85,7 @@ func init() {
 }
 
 func main() {
-	fs.Parse(os.Args[1:])
+	_ = fs.Parse(os.Args[1:])
 
 	if showVersion {
 		fmt.Println(version)
@@ -106,9 +106,9 @@ func main() {
 		debugHandler = newDebugHandler()
 
 		repo        = repository.NewInMemRepository()
-		svc         = service.New(repo)
+		svc         = service.New(repo, logger)
 		eps         = endpoints.New(svc, logger, endpointDuration)
-		httpHandler = transport.NewHTTPHandler(eps, httpRequestsCount)
+		httpHandler = transport.MakeHTTPHandler(eps, httpRequestsCount)
 	)
 
 	var g run.Group
@@ -151,7 +151,7 @@ func newDebugHandler() http.Handler {
 	h := http.NewServeMux()
 
 	h.HandleFunc(healthPath, func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("ok"))
+		_, _ = w.Write([]byte("ok"))
 	})
 	h.Handle(metricsPath, promhttp.Handler())
 

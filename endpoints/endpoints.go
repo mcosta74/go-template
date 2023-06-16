@@ -9,120 +9,98 @@ import (
 	"golang.org/x/exp/slog"
 )
 
-type Endpoints struct {
-	ListItems  endpoint.Endpoint
-	CreateItem endpoint.Endpoint
-	ReadItem   endpoint.Endpoint
-	UpdateItem endpoint.Endpoint
-	DeleteItem endpoint.Endpoint
+type Set struct {
+	PlaceOrder   endpoint.Endpoint
+	ConfirmOrder endpoint.Endpoint
+	CancelOrder  endpoint.Endpoint
+	GetOrder     endpoint.Endpoint
 }
 
-func New(svc service.Service, logger *slog.Logger, duration metrics.Histogram) Endpoints {
-	var listItems endpoint.Endpoint
+func New(svc service.OrderSvc, logger *slog.Logger, duration metrics.Histogram) Set {
+	var placeOrder endpoint.Endpoint
 	{
-		listItems = makeListItems(svc)
-		listItems = instrumentingMdw(duration.With("name", "ListItems"))(listItems)
-		listItems = loggingMdw(logger.With("name", "ListItems"))(listItems)
-		listItems = errorsMiddleware(listItems)
+		placeOrder = makePlaceOrderEndpoint(svc)
+		placeOrder = instrumentingMdw(duration.With("PlaceOrder"))(placeOrder)
+		placeOrder = loggingMdw(logger.With("name", "PlaceOrder"))(placeOrder)
+		placeOrder = errorsMiddleware(placeOrder)
 	}
 
-	var createItem endpoint.Endpoint
+	var confirmOrder endpoint.Endpoint
 	{
-		createItem = makeCreateItem(svc)
-		createItem = instrumentingMdw(duration.With("name", "CreateItem"))(createItem)
-		createItem = loggingMdw(logger.With("name", "CreateItem"))(createItem)
-		createItem = errorsMiddleware(createItem)
+		confirmOrder = makeConfirmOrderEndpoint(svc)
+		confirmOrder = instrumentingMdw(duration.With("ConfirmOrder"))(confirmOrder)
+		confirmOrder = loggingMdw(logger.With("name", "ConfirmOrder"))(confirmOrder)
+		confirmOrder = errorsMiddleware(confirmOrder)
 	}
 
-	var readItem endpoint.Endpoint
+	var cancelOrder endpoint.Endpoint
 	{
-		readItem = makeReadItem(svc)
-		readItem = instrumentingMdw(duration.With("name", "ReadItem"))(readItem)
-		readItem = loggingMdw(logger.With("name", "ReadItem"))(readItem)
-		readItem = errorsMiddleware(readItem)
+		cancelOrder = makeCancelOrderEndpoint(svc)
+		cancelOrder = instrumentingMdw(duration.With("CancelOrder"))(cancelOrder)
+		cancelOrder = loggingMdw(logger.With("name", "CancelOrder"))(cancelOrder)
+		cancelOrder = errorsMiddleware(cancelOrder)
 	}
 
-	var updateItem endpoint.Endpoint
+	var getOrder endpoint.Endpoint
 	{
-		updateItem = makeUpdateItem(svc)
-		updateItem = instrumentingMdw(duration.With("name", "UpdateItem"))(updateItem)
-		updateItem = loggingMdw(logger.With("name", "UpdateItem"))(updateItem)
-		updateItem = errorsMiddleware(updateItem)
+		getOrder = makeGetOrderEndpoint(svc)
+		getOrder = instrumentingMdw(duration.With("GetOrder"))(getOrder)
+		getOrder = loggingMdw(logger.With("name", "GetOrder"))(getOrder)
+		getOrder = errorsMiddleware(getOrder)
 	}
 
-	var deleteItem endpoint.Endpoint
-	{
-		deleteItem = makeDeleteItem(svc)
-		deleteItem = instrumentingMdw(duration.With("name", "DeleteItem"))(deleteItem)
-		deleteItem = loggingMdw(logger.With("name", "DeleteItem"))(deleteItem)
-		deleteItem = errorsMiddleware(deleteItem)
-	}
-
-	return Endpoints{
-		ListItems:  listItems,
-		CreateItem: createItem,
-		ReadItem:   readItem,
-		UpdateItem: updateItem,
-		DeleteItem: deleteItem,
+	return Set{
+		PlaceOrder:   placeOrder,
+		ConfirmOrder: confirmOrder,
+		CancelOrder:  cancelOrder,
+		GetOrder:     getOrder,
 	}
 }
 
-func makeListItems(svc service.Service) endpoint.Endpoint {
-	return func(ctx context.Context, request any) (any, error) {
-		req := request.(ListItemsRequests)
+func makePlaceOrderEndpoint(svc service.OrderSvc) endpoint.Endpoint {
+	return func(ctx context.Context, request any) (response any, err error) {
+		req := request.(PlaceOrderRequest)
 
-		v, err := svc.ListItems(ctx, req.Filters)
+		v, err := svc.PlaceOrder(ctx, &service.Order{Description: req.Description})
 		if err != nil {
 			return nil, err
 		}
-		return ListItemsResponse{V: v}, nil
+		return &PlaceOrderResponse{V: v}, nil
 	}
 }
 
-func makeCreateItem(svc service.Service) endpoint.Endpoint {
-	return func(ctx context.Context, request any) (any, error) {
-		req := request.(CreateItemRequest)
+func makeConfirmOrderEndpoint(svc service.OrderSvc) endpoint.Endpoint {
+	return func(ctx context.Context, request any) (response any, err error) {
+		req := request.(ConfirmOrderRequest)
 
-		v, err := svc.CreateItem(ctx, &service.Item{Code: req.Code, Description: req.Description})
+		v, err := svc.ConfirmOrder(ctx, req.ID)
 		if err != nil {
 			return nil, err
 		}
-		return CreateItemResponse{v}, nil
+		return &ConfirmOrderResponse{V: v}, nil
 	}
 }
 
-func makeReadItem(svc service.Service) endpoint.Endpoint {
-	return func(ctx context.Context, request any) (any, error) {
-		req := request.(ReadItemRequest)
+func makeCancelOrderEndpoint(svc service.OrderSvc) endpoint.Endpoint {
+	return func(ctx context.Context, request any) (response any, err error) {
+		req := request.(CancelOrderRequest)
 
-		v, err := svc.ReadItem(ctx, req.ID)
+		v, err := svc.CancelOrder(ctx, req.ID)
 		if err != nil {
 			return nil, err
 		}
-		return ReadItemResponse{v}, nil
+		return &CancelOrderResponse{V: v}, nil
 	}
 }
 
-func makeUpdateItem(svc service.Service) endpoint.Endpoint {
-	return func(ctx context.Context, request any) (any, error) {
-		req := request.(UpdateItemRequest)
+func makeGetOrderEndpoint(svc service.OrderSvc) endpoint.Endpoint {
+	return func(ctx context.Context, request any) (response any, err error) {
+		req := request.(GetOrderRequest)
 
-		v, err := svc.UpdateItem(ctx, req.Item)
+		v, err := svc.GetOrder(ctx, req.ID)
 		if err != nil {
 			return nil, err
 		}
-		return UpdateItemResponse{v}, nil
-	}
-}
-
-func makeDeleteItem(svc service.Service) endpoint.Endpoint {
-	return func(ctx context.Context, request any) (any, error) {
-		req := request.(DeleteItemRequest)
-
-		err := svc.DeleteItem(ctx, req.ID)
-		if err != nil {
-			return nil, err
-		}
-		return DeleteItemResponse{}, nil
+		return &GetOrderResponse{V: v}, nil
 	}
 }

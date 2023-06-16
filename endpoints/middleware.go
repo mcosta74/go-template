@@ -42,9 +42,6 @@ func errorsMiddleware(next endpoint.Endpoint) endpoint.Endpoint {
 			switch {
 			case errors.Is(err, repository.ErrNotFound):
 				err = NewNotFoundError(err)
-
-			case errors.Is(err, repository.ErrConflict):
-				err = NewConflictError(err)
 			}
 		}
 		return resp, err
